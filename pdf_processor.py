@@ -1,8 +1,8 @@
-import pdfplumber
+from PyPDF2 import PdfReader
 
-def extract_text_from_pdf(file_path):
+def extract_text_pypdf2(file_path):
+    reader = PdfReader(file_path)
     text = ""
-    with pdfplumber.open(file_path) as pdf:
-        for page in pdf.pages:
-            text += page.extract_text() or ""  # Handle cases where extract_text returns None
+    for page in reader.pages:
+        text += page.extract_text()
     return text
