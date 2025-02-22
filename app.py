@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
-from pdf_processor import extract_text_from_pdf
+from pdf_processor import extract_text_pypdf2
 from rag_pipeline import setup_vector_store, query_rag
 from chat_manager import ChatSession
 import os
@@ -30,7 +30,7 @@ def upload_pdf():
         # Save file temporarily and extract text
         file_path = f"temp_{session_id}.pdf"
         file.save(file_path)
-        text = extract_text_from_pdf(file_path)
+        text = extract_text_pypdf2(file_path)
         
         # Setup vector store for this session
         vector_store = setup_vector_store(text)
