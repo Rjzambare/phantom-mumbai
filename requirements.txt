@@ -1,5 +1,4 @@
-pymupdf 
-fitz
+PyPDF2
 langchain
 flask
 groq
