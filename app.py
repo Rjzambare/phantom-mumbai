@@ -32,7 +32,7 @@ def upload_pdf():
     
     try:
         file.save(file_path)
-        text = extract_text_pypdf2(file_path)
+        text = extract_text_pdfminer(file_path)
         vector_store = setup_vector_store(text)
         
         if session_id in sessions:
