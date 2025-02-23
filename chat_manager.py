@@ -1,3 +1,4 @@
+from datetime import datetime
 from groq import Groq
 from rag_pipeline import query_rag
 import os
@@ -10,6 +11,9 @@ class ChatSession:
         self.session_id = session_id
         self.vector_store = vector_store
         self.history = []
+        # Initialize both timestamps
+        self.start_time = datetime.now()
+        self.end_time = None  # Will be set when session ends
     
     def handle_query(self, query):
         response = query_rag(self.vector_store, query)
@@ -17,6 +21,10 @@ class ChatSession:
         return response
     
     def generate_summary(self):
+        # Set end_time when generating summary
+        if not self.end_time:
+            self.end_time = datetime.now()
+            
         # Prepare the chat history as context
         history_text = ""
         for entry in self.history:
@@ -51,7 +59,7 @@ class ChatSession:
         return summary
         
     def get_duration(self):
-        if self.end_time is None:
-            self.end_time = datetime.now()
-        duration = self.end_time - self.start_time
-        return str(duration).split(".")[0]  # Return clean duration string
+        # Calculate duration safely
+        end_time = self.end_time or datetime.now()
+        duration = end_time - self.start_time
+        return str(duration).split('.')[0]  # Remove microseconds
