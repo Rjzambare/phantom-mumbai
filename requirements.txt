@@ -1,6 +1,7 @@
 PyPDF2
 langchain
 flask
+reportlab
 groq
 faiss-cpu 
 sentence-transformers 
