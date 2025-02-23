@@ -4,6 +4,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
 import os
+import time
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -12,6 +13,7 @@ class ChatSession:
         self.session_id = session_id
         self.vector_store = vector_store
         self.history = []
+        self.start_time = time.time()
     
     def handle_query(self, query):
         response = query_rag(self.vector_store, query)
@@ -23,7 +25,11 @@ class ChatSession:
         for entry in self.history:
             history_text += f"Q: {entry['query']}\nA: {entry['response']}\n\n"
         
-        system_prompt = "You are a medical assistant. Summarize the following patient chat history into a concise and structured summary."
+        system_prompt = (
+            "You are a medical assistant. Summarize the following patient chat history "
+            "and any uploaded report information into a concise summary that can be used "
+            "to resume the chat later and for record keeping."
+        )
         full_prompt = f"Chat History:\n{history_text}"
 
         messages = [
@@ -52,15 +58,16 @@ class ChatSession:
         file_path = f"patient_report_{self.session_id}.pdf"
         doc = SimpleDocTemplate(file_path, pagesize=letter)
 
-        # Table data
-        table_data = [["Patient Session ID", self.session_id],
-                      ["Summary", summary]]
-
+        table_data = [
+            ["Session ID", self.session_id],
+            ["Summary", summary],
+            ["Chat History", ""]
+        ]
         for entry in self.history:
             table_data.append(["Query", entry["query"]])
             table_data.append(["Response", entry["response"]])
+            table_data.append(["", ""])  # Blank row for spacing
 
-        # Create table
         table = Table(table_data, colWidths=[150, 400])
         table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
@@ -72,7 +79,8 @@ class ChatSession:
             ("GRID", (0, 0), (-1, -1), 1, colors.black),
         ]))
 
-        # Build PDF
         doc.build([table])
-
         return file_path
+
+    def get_duration(self):
+        return int(time.time() - self.start_time)
