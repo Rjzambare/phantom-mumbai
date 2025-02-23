@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
-from pdf_processor import extract_text_pypdf2
+from pdf_processor import extract_text_pdfminer
 from rag_pipeline import setup_vector_store, query_rag
 from chat_manager import ChatSession
 import os
