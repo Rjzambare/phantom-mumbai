@@ -1,8 +1,9 @@
-from PyPDF2 import PdfReader
+from pdfminer.high_level import extract_text
 
-def extract_text_pypdf2(file_path):
-    reader = PdfReader(file_path)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+def extract_text_pdfminer(file_path):
+    try:
+        text = extract_text(file_path)
+        return text.strip()  # Remove leading/trailing whitespace
+    except Exception as e:
+        print(f"Error extracting text: {e}")
+        return ""
