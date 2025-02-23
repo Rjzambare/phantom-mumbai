@@ -1,4 +1,4 @@
-PyPDF2
+pdfminer.six
 langchain
 flask
 reportlab
