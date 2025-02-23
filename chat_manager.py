@@ -11,20 +11,13 @@ class ChatSession:
         self.session_id = session_id
         self.vector_store = vector_store
         self.history = []
-        # Initialize both timestamps
-        self.start_time = datetime.now()
-        self.end_time = None  # Will be set when session ends
     
     def handle_query(self, query):
         response = query_rag(self.vector_store, query)
         self.history.append({"query": query, "response": response})
         return response
     
-    def generate_summary(self):
-        # Set end_time when generating summary
-        if not self.end_time:
-            self.end_time = datetime.now()
-            
+    def generate_summary(self):            
         # Prepare the chat history as context
         history_text = ""
         for entry in self.history:
@@ -59,7 +52,7 @@ class ChatSession:
         return summary
         
     def get_duration(self):
-        # Calculate duration safely
-        end_time = self.end_time or datetime.now()
-        duration = end_time - self.start_time
-        return str(duration).split('.')[0]  # Remove microseconds
+        if self.end_time is None:
+            self.end_time = datetime.now()
+        duration = self.end_time - self.start_time
+        return str(duration).split(".")[0]  # Return clean duration string
