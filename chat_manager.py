@@ -49,3 +49,9 @@ class ChatSession:
             summary += chunk.choices[0].delta.content or ""
         
         return summary
+        
+    def get_duration(self):
+        if self.end_time is None:
+            self.end_time = datetime.now()
+        duration = self.end_time - self.start_time
+        return str(duration).split(".")[0]  # Return clean duration string
