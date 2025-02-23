@@ -97,6 +97,28 @@ def end_chat():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/download_report', methods=['POST'])
+def download_report():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    session_id = data.get('session_id')
+
+    if not session_id:
+        return jsonify({"error": "Missing session_id"}), 400
+
+    if session_id not in sessions:
+        return jsonify({"error": "Session not found"}), 404
+
+    try:
+        session = sessions[session_id]
+        file_path = session.generate_report()
+        return send_from_directory(directory=os.getcwd(), path=file_path, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port, debug=False)  # Disable debug in production
