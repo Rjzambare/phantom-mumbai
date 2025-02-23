@@ -7,17 +7,16 @@ import os
 app = Flask(__name__)
 sessions = {}  # Temporary in-memory storage for chat sessions
 
-# Add root route to prevent 404 errors
 @app.route('/')
 def home():
     return jsonify({"status": "OK", "message": "Chat API Service Running"})
 
-# Add favicon route to prevent repeated 404s
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+# Endpoint for patient to upload a PDF report
 @app.route('/upload', methods=['POST'])
 def upload_pdf():
     if 'file' not in request.files or 'session_id' not in request.form:
@@ -26,17 +25,21 @@ def upload_pdf():
     file = request.files['file']
     session_id = request.form['session_id']
     
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({"error": "Only PDF files are allowed"}), 400
+
+    file_path = f"temp_{session_id}.pdf"
+    
     try:
-        # Save file temporarily and extract text
-        file_path = f"temp_{session_id}.pdf"
         file.save(file_path)
         text = extract_text_pypdf2(file_path)
-        
-        # Setup vector store for this session
         vector_store = setup_vector_store(text)
         
-        # Initialize chat session
-        sessions[session_id] = ChatSession(session_id, vector_store)
+        if session_id in sessions:
+            sessions[session_id].vector_store = vector_store
+        else:
+            sessions[session_id] = ChatSession(session_id, vector_store)
+            
         os.remove(file_path)
         
         return jsonify({
@@ -45,8 +48,11 @@ def upload_pdf():
             "text_length": len(text)
         })
     except Exception as e:
+        if os.path.exists(file_path):
+            os.remove(file_path)
         return jsonify({"error": str(e)}), 500
 
+# Endpoint for real-time chat between patient and AI avatar
 @app.route('/chat', methods=['POST'])
 def chat():
     if not request.is_json:
@@ -67,11 +73,12 @@ def chat():
         response = session.handle_query(query)
         return jsonify({
             "response": response,
-            "history": session.history[-5:]  # Return last 5 messages
+            "history": session.history[-5:]  # Return last 5 messages for context
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Endpoint to end the chat session and generate the report
 @app.route('/end_chat', methods=['POST'])
 def end_chat():
     if not request.is_json:
@@ -89,14 +96,19 @@ def end_chat():
     try:
         session = sessions[session_id]
         summary = session.generate_summary()
+        report_file_path = session.generate_report()
+        duration = session.get_duration()
+        # Remove session from memory after generating the report
         del sessions[session_id]
         return jsonify({
             "summary": summary,
-            "session_duration": session.get_duration()
+            "report_file": report_file_path,
+            "session_duration": duration
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Endpoint to download the generated PDF report
 @app.route('/download_report', methods=['POST'])
 def download_report():
     if not request.is_json:
@@ -108,17 +120,15 @@ def download_report():
     if not session_id:
         return jsonify({"error": "Missing session_id"}), 400
 
-    if session_id not in sessions:
-        return jsonify({"error": "Session not found"}), 404
+    report_file = f"patient_report_{session_id}.pdf"
+    if not os.path.exists(report_file):
+        return jsonify({"error": "Report not found"}), 404
 
     try:
-        session = sessions[session_id]
-        file_path = session.generate_report()
-        return send_from_directory(directory=os.getcwd(), path=file_path, as_attachment=True)
+        return send_from_directory(directory=os.getcwd(), path=report_file, as_attachment=True)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port, debug=False)  # Disable debug in production
+    app.run(host='0.0.0.0', port=port, debug=False)
